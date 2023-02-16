@@ -14,7 +14,7 @@ enum Direction {
     Right,
 }
 
-struct ImgSegmentation<'a> {
+pub struct ImgSegmentation<'a> {
     pub visited: VisitedPixels,
     pub segments: ImageSegments,
     pub pixel_stack: Vec<Coordinates>,
@@ -66,10 +66,12 @@ impl<'a> ImgSegmentation<'a> {
     }
 
     fn mount_next_line(&mut self, coords: (u16, u16), tone: u8, new_segment: &mut ImageSegment) {
-        if !self.visited.is_visited(coords)
-            && self.img.get_pixel(coords.0 as u32, coords.1 as u32).0[0] == tone
-        {
-            self.mount_segment(new_segment, coords);
+        if !self.visited.is_visited(coords) {
+            if self.img.get_pixel(coords.0 as u32, coords.1 as u32).0[0] == tone {
+                self.mount_segment(new_segment, coords);
+            } else {
+                self.pixel_stack.push(coords);
+            }
         }
     }
 
@@ -111,7 +113,7 @@ impl<'a> ImgSegmentation<'a> {
     }
 }
 
-struct VisitedPixels {
+pub struct VisitedPixels {
     visited: Vec<bool>,
     dimensions: Coordinates,
 }
@@ -119,7 +121,7 @@ struct VisitedPixels {
 impl VisitedPixels {
     pub fn new(dimensions: Coordinates) -> Self {
         Self {
-            visited: Vec::with_capacity(dimensions.0 as usize * dimensions.1 as usize),
+            visited: vec![false; (dimensions.0 as usize * dimensions.1 as usize)],
             dimensions,
         }
     }
