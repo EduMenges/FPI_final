@@ -15,9 +15,9 @@ trait Connected {
 
 impl Connected for RangeInclusive<u16> {
     fn is_connected(&self, other: &Self) -> bool {
-        if self.end() + 1 >= *other.start() {
+        if self.end() + 1 == *other.start() {
             true
-        } else if other.end() + 1 >= *self.start() {
+        } else if other.end() + 1 == *self.start() {
             true
         } else {
             false
@@ -27,10 +27,11 @@ impl Connected for RangeInclusive<u16> {
 
 impl Connected for ImageSegment {
     fn is_connected(&self, other: &Self) -> bool {
-        for (_, range) in other.iter().filter(|(k, _)| self.contains_key(*k)) {
-            for r in range {
-                if r.is_connected() {};
-            }
+        for (k, other_range) in other.iter().filter(|(k, _)| self.contains_key(*k)) {
+            other_range.iter().any(|o_r| {
+                let self_ranges = self.get(k).unwrap();
+                self_ranges.iter().any(|s_r| s_r.is_connected(o_r))
+            });
         }
 
         false
