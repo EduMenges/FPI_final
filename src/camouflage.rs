@@ -18,32 +18,13 @@ fn camouflage_img(i_b: &DynamicImage, i_f: &DynamicImage, pos: (u32, u32)) -> Dy
     quantize_by_tones(&mut lu_b);
     quantize_by_tones(&mut lu_f);
 
-    // Cropping the background
-    let mut lu_b = crop_image(
-        &DynamicImage::ImageLumaA8(lu_b),
-        &DynamicImage::ImageLumaA8(lu_f.clone()),
-        pos,
-    )
-    .to_luma_alpha8();
-
     // Segmenting images
     let seg_b = ImgSegmentation::segment_img(&lu_b);
     let seg_f = ImgSegmentation::segment_img(&lu_f);
 
+    // Cropping images
+    
     // Creating graphs
 
     camouflaged
-}
-
-/// Crops the basis image with the shape of the target image.
-fn crop_image(basis: &DynamicImage, target: &DynamicImage, pos: (u32, u32)) -> DynamicImage {
-    let mut cut = DynamicImage::new_rgba8(basis.width(), basis.height());
-
-    for (x, y, pixel) in target.pixels() {
-        if pixel.0[3] > 0 {
-            cut.put_pixel(pos.0 + x, pos.1 + y, pixel);
-        }
-    }
-
-    cut
 }

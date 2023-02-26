@@ -1,29 +1,36 @@
 use petgraph::{
+    data::Build,
     prelude::UnGraph,
     visit::{IntoNodeReferences, NodeFilteredNodes},
 };
 
-use crate::segmentation::{ImageSegment, ImageSegments};
+use crate::segmentation::{Connected, ImageSegment, ImageSegments};
 
 pub type SegmentGraph = UnGraph<ImageSegment, ()>;
 
 pub fn mount_graph(f_segments: ImageSegments, b_segments: ImageSegments) -> SegmentGraph {
     let mut res = SegmentGraph::new_undirected();
 
-    for segment in f_segments.into_iter() {
+    for segment in f_segments.into_iter().chain(b_segments.into_iter()) {
         res.add_node(segment);
     }
+
+    connect_boundaries(&mut res);
 
     res
 }
 
-fn connect_boundaries(segment: &mut SegmentGraph) {
-    let mut remaining_indices = segment.node_indices();
+fn connect_boundaries(seg_graph: &mut SegmentGraph) {
+    let mut nodes = seg_graph.node_indices();
 
-    while let Some(test_node) = remaining_indices.next() {
-        let iterating_indices = remaining_indices.clone();
+    while let Some(node) = nodes.next() {
+        let remaning_nodes = nodes.clone();
 
-        for other_node in iterating_indices {}
+        for other_node in remaning_nodes {
+            if seg_graph[node].is_connected(&seg_graph[other_node]) {
+                seg_graph.add_edge(node, other_node, ());
+            }
+        }
     }
 }
 

@@ -9,7 +9,7 @@ pub type ImageSegment = HashMap<u16, Vec<RangeInclusive<u16>>>;
 pub type ImageSegments = LinkedList<ImageSegment>;
 pub type Coordinates = (u16, u16);
 
-trait Connected {
+pub trait Connected {
     fn is_connected(&self, other: &Self) -> bool;
 }
 
@@ -17,24 +17,50 @@ impl Connected for RangeInclusive<u16> {
     fn is_connected(&self, other: &Self) -> bool {
         if self.end() + 1 == *other.start() {
             true
-        } else if other.end() + 1 == *self.start() {
-            true
         } else {
-            false
+            other.end() + 1 == *self.start()
         }
+    }
+}
+
+impl Connected for Vec<RangeInclusive<u16>> {
+    fn is_connected(&self, other: &Self) -> bool {
+        self.iter().any(|range| {
+            other
+                .iter()
+                .any(|other_range| range.is_connected(other_range))
+        })
     }
 }
 
 impl Connected for ImageSegment {
     fn is_connected(&self, other: &Self) -> bool {
-        for (k, other_range) in other.iter().filter(|(k, _)| self.contains_key(*k)) {
-            other_range.iter().any(|o_r| {
-                let self_ranges = self.get(k).unwrap();
-                self_ranges.iter().any(|s_r| s_r.is_connected(o_r))
-            });
+        let common_ys = self.iter().filter(|(y, _)| other.contains_key(y));
+
+        let mut res = common_ys.clone().any(|(y, ranges)| {
+            let other_ranges = other.get(y).unwrap();
+            ranges.is_connected(other_ranges)
+        });
+
+        if !res {
+            if let Some((lower, ranges)) = common_ys.clone().min_by_key(|(y, _)| **y) {
+                if let Some(lower) = lower.checked_sub(1) {
+                    if let Some(other_ranges) = other.get(&lower) {
+                        res = ranges.is_connected(other_ranges);
+                    }
+                }
+            }
         }
 
-        false
+        if !res {
+            if let Some((upper, ranges)) = common_ys.max_by_key(|(y, _)| **y) {
+                if let Some(other_ranges) = other.get(&(upper - 1)) {
+                    res = ranges.is_connected(other_ranges);
+                }
+            }
+        }
+
+        res
     }
 }
 
@@ -70,10 +96,14 @@ impl<'a> ImgSegmentation<'a> {
             let coords = this.pixel_stack.pop().unwrap();
 
             if !this.visited.is_visited(coords) {
+                let is_transparent = this.img.get_pixel(coords.0.into(), coords.1.into()).0[1] == 0;
                 this.visited.visit_tone(coords);
                 let mut new_segment = ImageSegment::new();
                 this.mount_segment(&mut new_segment, coords);
-                this.segments.push_front(new_segment);
+
+                if !is_transparent {
+                    this.segments.push_front(new_segment);
+                }
             }
         }
 
@@ -81,7 +111,7 @@ impl<'a> ImgSegmentation<'a> {
     }
 
     fn mount_segment(&mut self, new_segment: &mut ImageSegment, coords: Coordinates) {
-        let tone_range = self.tone_to_range(coords);
+        let tone_range = self.mount_line(coords);
         let tone = self.img.get_pixel(coords.0 as u32, coords.1 as u32).0[0];
 
         new_segment
@@ -104,6 +134,7 @@ impl<'a> ImgSegmentation<'a> {
     fn mount_next_line(&mut self, coords: (u16, u16), tone: u8, new_segment: &mut ImageSegment) {
         if !self.visited.is_visited(coords) {
             let next_pixel = self.img.get_pixel(coords.0 as u32, coords.1 as u32).0;
+
             if next_pixel[0] == tone && next_pixel[1] > 0 {
                 self.visited.visit_tone(coords);
                 self.mount_segment(new_segment, coords);
@@ -111,7 +142,7 @@ impl<'a> ImgSegmentation<'a> {
         }
     }
 
-    fn tone_to_range(&mut self, coords: Coordinates) -> RangeInclusive<u16> {
+    fn mount_line(&mut self, coords: Coordinates) -> RangeInclusive<u16> {
         let lower = self.side_scan(coords, Direction::Left);
         let upper = self.side_scan(coords, Direction::Right);
 
@@ -128,17 +159,12 @@ impl<'a> ImgSegmentation<'a> {
 
         let mut res = coords.0;
 
-        for x in walk.into_iter() {
+        for x in walk.iter() {
             let neighbour = self.img.get_pixel((*x).into(), coords.1 as u32);
 
-            if neighbour.0[0] == tone[0] {
+            if neighbour.0[0] == tone[0] && neighbour.0[1] > 0 {
                 self.visited.visit_tone((*x, coords.1));
-
-                if neighbour.0[1] > 0 {
-                    res = *x;
-                } else {
-                    break;
-                }
+                res = *x;
             } else {
                 self.pixel_stack.push((*x, coords.1));
                 break;

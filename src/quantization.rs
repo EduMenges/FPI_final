@@ -34,8 +34,8 @@ pub fn quantize(img: &mut GrayAlphaImage, n: u8) {
 pub fn calc_tones(img: &GrayAlphaImage) -> u8
 {
     let mut acc = 0;
-
-    for _ in img.pixels().filter(|p| p.0[1] > 0){
+    // REVISAR
+    for _ in img.pixels().filter(|p| p.0[1] > 0) {
         acc += 1;
     }
 
