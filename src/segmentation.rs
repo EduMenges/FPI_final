@@ -6,7 +6,7 @@ use std::{
 use image::{GenericImageView, GrayAlphaImage};
 
 pub type ImageSegment = HashMap<u16, Vec<RangeInclusive<u16>>>;
-pub type ImageSegments = LinkedList<ImageSegment>;
+pub type ImageSegments = Vec<ImageSegment>;
 pub type Coordinates = (u16, u16);
 
 pub trait Connected {
@@ -102,7 +102,7 @@ impl<'a> ImgSegmentation<'a> {
                 this.mount_segment(&mut new_segment, coords);
 
                 if !is_transparent {
-                    this.segments.push_front(new_segment);
+                    this.segments.push(new_segment);
                 }
             }
         }

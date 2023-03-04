@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use image::{LumaA, GrayAlphaImage};
 
 pub fn quantize(img: &mut GrayAlphaImage, n: u8) {
@@ -33,13 +35,13 @@ pub fn quantize(img: &mut GrayAlphaImage, n: u8) {
 
 pub fn calc_tones(img: &GrayAlphaImage) -> u8
 {
-    let mut acc = 0;
-    // REVISAR
-    for _ in img.pixels().filter(|p| p.0[1] > 0) {
-        acc += 1;
+    let mut set = HashSet::new();
+    
+    for p in img.pixels().filter(|p| p.0[1] > 0) {
+        set.insert(p.0[0]);
     }
 
-    acc
+    set.len() as u8
 }
 
 pub fn quantize_by_tones(img: &mut GrayAlphaImage) {
