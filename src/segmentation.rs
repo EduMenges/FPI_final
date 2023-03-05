@@ -1,13 +1,14 @@
 use std::{
-    collections::{HashMap, LinkedList},
+    collections::{HashMap, LinkedList, BTreeMap},
     ops::RangeInclusive,
 };
 
 use image::{GenericImageView, GrayAlphaImage};
 
+use crate::helpers::{Coordinates, Transparent, SameTone};
+
 pub type ImageSegment = HashMap<u16, Vec<RangeInclusive<u16>>>;
 pub type ImageSegments = Vec<ImageSegment>;
-pub type Coordinates = (u16, u16);
 
 pub trait Connected {
     fn is_connected(&self, other: &Self) -> bool;
@@ -65,6 +66,19 @@ impl Connected for ImageSegment {
     }
 }
 
+pub trait EuclideanDistance {
+    fn calc_euclidean_distance(&self, other: &Self) -> f64 {
+        let centr_s = self.calc_centroid();
+        let centr_o = other.calc_centroid();
+
+
+
+        0.0
+    }
+
+    fn calc_centroid(&self) -> Coordinates;
+}
+
 pub trait Crop {
     fn crop(&self, other: Self) -> Self;
 }
@@ -86,7 +100,6 @@ enum Direction {
 pub struct ImgSegmentation<'a> {
     pub visited: VisitedPixels,
     pub segments: ImageSegments,
-    pub pixel_stack: Vec<Coordinates>,
     img: &'a GrayAlphaImage,
 }
 
@@ -94,28 +107,23 @@ impl<'a> ImgSegmentation<'a> {
     pub fn segment_img(img: &'a GrayAlphaImage) -> ImageSegments {
         let segments = ImageSegments::new();
         let visited = VisitedPixels::new((img.width() as u16, img.height() as u16));
-        let pixel_stack: Vec<Coordinates> = Vec::new();
+
         let mut this = Self {
             visited,
             segments,
-            pixel_stack,
             img,
         };
 
-        for i in (0..img.height() as u16).rev() {
-            this.pixel_stack.push((0, i));
-        }
-
-        while !this.pixel_stack.is_empty() {
-            let coords = this.pixel_stack.pop().unwrap();
+        for (x, y, _) in this.img.enumerate_pixels() {
+            let coords = (x as u16, y as u16);
 
             if !this.visited.is_visited(coords) {
-                let is_transparent = this.img.get_pixel(coords.0.into(), coords.1.into()).0[1] == 0;
                 this.visited.visit_tone(coords);
+
                 let mut new_segment = ImageSegment::new();
                 this.mount_segment(&mut new_segment, coords);
 
-                if !is_transparent {
+                if !this.img.is_transparent(coords) {
                     this.segments.push(new_segment);
                 }
             }
@@ -146,13 +154,9 @@ impl<'a> ImgSegmentation<'a> {
     }
 
     fn mount_next_line(&mut self, coords: (u16, u16), tone: u8, new_segment: &mut ImageSegment) {
-        if !self.visited.is_visited(coords) {
-            let next_pixel = self.img.get_pixel(coords.0 as u32, coords.1 as u32).0;
-
-            if next_pixel[0] == tone && next_pixel[1] > 0 {
-                self.visited.visit_tone(coords);
-                self.mount_segment(new_segment, coords);
-            }
+        if !self.visited.is_visited(coords) && self.img.same_tone(coords, tone) && !self.img.is_transparent(coords) {
+            self.visited.visit_tone(coords);
+            self.mount_segment(new_segment, coords);
         }
     }
 
@@ -164,7 +168,7 @@ impl<'a> ImgSegmentation<'a> {
     }
 
     fn side_scan(&mut self, coords: Coordinates, direction: Direction) -> u16 {
-        let tone = self.img.get_pixel(coords.0 as u32, coords.1 as u32).0;
+        let tone = self.img.get_pixel(coords.0 as u32, coords.1 as u32).0[0];
 
         let walk = match direction {
             Direction::Left => Box::from_iter((0..coords.0).rev()),
@@ -174,13 +178,12 @@ impl<'a> ImgSegmentation<'a> {
         let mut res = coords.0;
 
         for x in walk.iter() {
-            let neighbour = self.img.get_pixel((*x).into(), coords.1 as u32);
+            let coords: Coordinates = (*x, coords.1);
 
-            if neighbour.0[0] == tone[0] && neighbour.0[1] > 0 {
-                self.visited.visit_tone((*x, coords.1));
+            if self.img.same_tone(coords, tone) && !self.img.is_transparent(coords) {
+                self.visited.visit_tone(coords);
                 res = *x;
             } else {
-                self.pixel_stack.push((*x, coords.1));
                 break;
             }
         }
