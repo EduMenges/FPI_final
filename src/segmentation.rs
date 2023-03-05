@@ -71,9 +71,10 @@ pub trait EuclideanDistance {
         let centr_s = self.calc_centroid();
         let centr_o = other.calc_centroid();
 
+        let x_dist = centr_s.0.abs_diff(centr_o.0) as f64;
+        let y_dist = centr_s.1.abs_diff(centr_o.1) as f64;
 
-
-        0.0
+        (x_dist.powi(2) + y_dist.powi(2)).sqrt()
     }
 
     fn calc_centroid(&self) -> Coordinates;
