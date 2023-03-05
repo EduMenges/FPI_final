@@ -1,94 +1,29 @@
+pub mod connection;
+pub mod centroid;
+
 use std::{
-    collections::{HashMap, LinkedList, BTreeMap},
+    collections::{BTreeMap, HashMap, LinkedList},
     ops::RangeInclusive,
 };
 
 use image::{GenericImageView, GrayAlphaImage};
 
-use crate::helpers::{Coordinates, Transparent, SameTone};
+use crate::helpers::{Connected, Coordinates, CoordinatesF, Crop, SameTone, Transparent};
+pub type Segment = HashMap<u16, Vec<RangeInclusive<u16>>>;
 
-pub type ImageSegment = HashMap<u16, Vec<RangeInclusive<u16>>>;
-pub type ImageSegments = Vec<ImageSegment>;
-
-pub trait Connected {
-    fn is_connected(&self, other: &Self) -> bool;
+#[derive(Default)]
+pub struct GeoSegment {
+    centroid: CoordinatesF,
+    seg: Segment,
 }
 
-impl Connected for RangeInclusive<u16> {
-    fn is_connected(&self, other: &Self) -> bool {
-        if self.end() + 1 == *other.start() {
-            true
-        } else {
-            other.end() + 1 == *self.start()
-        }
-    }
-}
-
-impl Connected for Vec<RangeInclusive<u16>> {
-    fn is_connected(&self, other: &Self) -> bool {
-        self.iter().any(|range| {
-            other
-                .iter()
-                .any(|other_range| range.is_connected(other_range))
-        })
-    }
-}
-
-impl Connected for ImageSegment {
-    fn is_connected(&self, other: &Self) -> bool {
-        let common_ys = self.iter().filter(|(y, _)| other.contains_key(y));
-
-        let mut res = common_ys.clone().any(|(y, ranges)| {
-            let other_ranges = other.get(y).unwrap();
-            ranges.is_connected(other_ranges)
-        });
-
-        if !res {
-            if let Some((min_row, ranges)) = common_ys.clone().min_by_key(|(y, _)| **y) {
-                // Necessário para não chegar diminuir a coordenada 0
-                if let Some(upper_row) = min_row.checked_sub(1) {
-                    if let Some(other_ranges) = other.get(&upper_row) {
-                        res = ranges.is_connected(other_ranges);
-                    }
-                }
-            }
-        }
-
-        if !res {
-            if let Some((max_row, ranges)) = common_ys.max_by_key(|(y, _)| **y) {
-                if let Some(other_ranges) = other.get(&(max_row + 1)) {
-                    res = ranges.is_connected(other_ranges);
-                }
-            }
-        }
-
-        res
-    }
-}
-
-pub trait EuclideanDistance {
-    fn calc_euclidean_distance(&self, other: &Self) -> f64 {
-        let centr_s = self.calc_centroid();
-        let centr_o = other.calc_centroid();
-
-        let x_dist = centr_s.0.abs_diff(centr_o.0) as f64;
-        let y_dist = centr_s.1.abs_diff(centr_o.1) as f64;
-
-        (x_dist.powi(2) + y_dist.powi(2)).sqrt()
-    }
-
-    fn calc_centroid(&self) -> Coordinates;
-}
-
-pub trait Crop {
-    fn crop(&self, other: Self) -> Self;
-}
+pub type ImageSegments = Vec<GeoSegment>;
 
 impl Crop for ImageSegments {
     fn crop(&self, other: Self) -> Self {
         other
             .into_iter()
-            .filter(|o_seg| self.iter().any(|s_seg| s_seg.is_connected(o_seg)))
+            .filter(|o_seg| self.iter().any(|s_seg| s_seg.seg.is_connected(&o_seg.seg)))
             .collect()
     }
 }
@@ -121,7 +56,7 @@ impl<'a> ImgSegmentation<'a> {
             if !this.visited.is_visited(coords) {
                 this.visited.visit_tone(coords);
 
-                let mut new_segment = ImageSegment::new();
+                let mut new_segment = GeoSegment::default();
                 this.mount_segment(&mut new_segment, coords);
 
                 if !this.img.is_transparent(coords) {
@@ -133,11 +68,12 @@ impl<'a> ImgSegmentation<'a> {
         this.segments
     }
 
-    fn mount_segment(&mut self, new_segment: &mut ImageSegment, coords: Coordinates) {
+    fn mount_segment(&mut self, new_segment: &mut GeoSegment, coords: Coordinates) {
         let tone_range = self.mount_line(coords);
         let tone = self.img.get_pixel(coords.0 as u32, coords.1 as u32).0[0];
 
         new_segment
+            .seg
             .entry(coords.1)
             .and_modify(|v| v.push(tone_range.clone()))
             .or_insert_with(|| vec![tone_range.clone()]);
@@ -154,8 +90,11 @@ impl<'a> ImgSegmentation<'a> {
         }
     }
 
-    fn mount_next_line(&mut self, coords: (u16, u16), tone: u8, new_segment: &mut ImageSegment) {
-        if !self.visited.is_visited(coords) && self.img.same_tone(coords, tone) && !self.img.is_transparent(coords) {
+    fn mount_next_line(&mut self, coords: (u16, u16), tone: u8, new_segment: &mut GeoSegment) {
+        if !self.visited.is_visited(coords)
+            && self.img.same_tone(coords, tone)
+            && !self.img.is_transparent(coords)
+        {
             self.visited.visit_tone(coords);
             self.mount_segment(new_segment, coords);
         }

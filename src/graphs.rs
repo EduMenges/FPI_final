@@ -4,9 +4,36 @@ use petgraph::{
     visit::{IntoNodeReferences, NodeFilteredNodes},
 };
 
-use crate::segmentation::{Connected, ImageSegment, ImageSegments};
+use crate::{
+    helpers::SpatialCoordinates,
+    segmentation::{Connected, ImageSegment, ImageSegments},
+};
 
-pub type SegmentGraph = UnGraph<ImageSegment, ()>;
+pub trait EuclideanDistance {
+    fn calc_euclidean_distance(&self, other: &Self) -> f64 {
+        let centr_s = self.calc_centroid();
+        let centr_o = other.calc_centroid();
+
+        let x_dist = (centr_s.0 - centr_o.0).abs() as f64;
+        let y_dist = (centr_s.1 - centr_o.1).abs() as f64;
+
+        (x_dist.powi(2) + y_dist.powi(2)).sqrt()
+    }
+
+    fn calc_centroid(&self) -> SpatialCoordinates;
+}
+
+impl EuclideanDistance for GeoSegment {
+    fn calc_centroid(&self) -> SpatialCoordinates {
+        self.centroid
+    }
+}
+
+impl EuclideanDistance for ImageSegment {
+    fn calc_centroid(&self) -> SpatialCoordinates {}
+}
+
+pub type SegmentGraph = UnGraph<GeoSegment, ()>;
 
 pub fn mount_graph(f_segments: ImageSegments, b_segments: ImageSegments) -> SegmentGraph {
     let mut res = SegmentGraph::new_undirected();
