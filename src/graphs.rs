@@ -1,3 +1,6 @@
+use std::collections::{BTreeSet, BTreeMap};
+
+use ordered_float::OrderedFloat;
 use petgraph::{
     data::Build,
     prelude::UnGraph,
@@ -44,7 +47,7 @@ pub fn mount_graph(f_segments: ImageSegments, b_segments: ImageSegments) -> Segm
         res.add_node(segment);
     }
 
-
+    connect_neighbours(&mut res, division.index());
 
     res
 }
@@ -63,9 +66,23 @@ fn connect_boundaries(seg_graph: &mut SegmentGraph) {
     }
 }
 
-fn connect_neighbours(seg_graph: &mut SegmentGraph, division: NodeIndex) {
-    for i in seg_graph.node_indices().take(division.index()) {
-        
+const K_VALUE: usize = 6;
+fn connect_neighbours(seg_graph: &mut SegmentGraph, division: usize) {
+    let background_nodes = seg_graph.node_indices().skip(division);
+    let total_background_nodes = seg_graph.node_count() - division;
+
+    for f_node in seg_graph.node_indices().take(division) {
+        let mut min_tree = Vec::with_capacity(total_background_nodes);
+
+        for b_node in background_nodes.clone() {
+            min_tree.push((OrderedFloat(seg_graph[b_node].calc_euclidean_distance(&seg_graph[f_node])), b_node));
+        }
+
+        min_tree.sort_by_key(|(distance, _)| *distance);
+
+        for (_, b_node) in min_tree.into_iter().take(K_VALUE) {
+            seg_graph.add_edge(f_node, b_node, ());
+        }
     }
 }
 
