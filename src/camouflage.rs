@@ -2,7 +2,7 @@ use image::{DynamicImage, GenericImage, GenericImageView};
 
 use crate::{
     quantization::quantize_by_tones,
-    segmentation::{ImageSegments, ImgSegmentation, Crop},
+    segmentation::{ImgSegmentation}, helpers::Crop,
 };
 
 fn camouflage_img(i_b: &DynamicImage, i_f: &DynamicImage, pos: (u32, u32)) -> DynamicImage {

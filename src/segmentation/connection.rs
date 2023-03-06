@@ -3,6 +3,7 @@ use crate::segmentation::Segment;
 use std::ops::RangeInclusive;
 
 impl Connected for RangeInclusive<u16> {
+    #[inline]
     fn is_connected(&self, other: &Self) -> bool {
         if self.end() + 1 == *other.start() {
             true
@@ -13,6 +14,7 @@ impl Connected for RangeInclusive<u16> {
 }
 
 impl Connected for Vec<RangeInclusive<u16>> {
+    #[inline]
     fn is_connected(&self, other: &Self) -> bool {
         self.iter().any(|range| {
             other

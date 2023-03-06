@@ -1,5 +1,5 @@
-pub mod connection;
 pub mod centroid;
+pub mod connection;
 
 use std::{
     collections::{BTreeMap, HashMap, LinkedList},
@@ -8,13 +8,15 @@ use std::{
 
 use image::{GenericImageView, GrayAlphaImage};
 
-use crate::helpers::{Connected, Coordinates, CoordinatesF, Crop, SameTone, Transparent};
+use crate::helpers::{
+    Connected, Coordinates, CoordinatesF, Crop, SameTone, SmallCoord, Transparent, Centroid,
+};
 pub type Segment = HashMap<u16, Vec<RangeInclusive<u16>>>;
 
 #[derive(Default)]
 pub struct GeoSegment {
-    centroid: CoordinatesF,
-    seg: Segment,
+    pub centroid: CoordinatesF,
+    pub seg: Segment,
 }
 
 pub type ImageSegments = Vec<GeoSegment>;
@@ -56,10 +58,11 @@ impl<'a> ImgSegmentation<'a> {
             if !this.visited.is_visited(coords) {
                 this.visited.visit_tone(coords);
 
-                let mut new_segment = GeoSegment::default();
-                this.mount_segment(&mut new_segment, coords);
-
                 if !this.img.is_transparent(coords) {
+                    let mut new_segment = GeoSegment::default();
+                    this.mount_segment(&mut new_segment, coords);
+                    new_segment.centroid = new_segment.seg.calc_centroid(this.img);
+
                     this.segments.push(new_segment);
                 }
             }
@@ -70,7 +73,7 @@ impl<'a> ImgSegmentation<'a> {
 
     fn mount_segment(&mut self, new_segment: &mut GeoSegment, coords: Coordinates) {
         let tone_range = self.mount_line(coords);
-        let tone = self.img.get_pixel(coords.0 as u32, coords.1 as u32).0[0];
+        let tone = self.img.get_pixel_s(coords)[0];
 
         new_segment
             .seg
@@ -100,6 +103,7 @@ impl<'a> ImgSegmentation<'a> {
         }
     }
 
+    #[inline]
     fn mount_line(&mut self, coords: Coordinates) -> RangeInclusive<u16> {
         let lower = self.side_scan(coords, Direction::Left);
         let upper = self.side_scan(coords, Direction::Right);
@@ -108,7 +112,7 @@ impl<'a> ImgSegmentation<'a> {
     }
 
     fn side_scan(&mut self, coords: Coordinates, direction: Direction) -> u16 {
-        let tone = self.img.get_pixel(coords.0 as u32, coords.1 as u32).0[0];
+        let tone = self.img.get_pixel_s(coords)[0];
 
         let walk = match direction {
             Direction::Left => Box::from_iter((0..coords.0).rev()),
@@ -134,23 +138,24 @@ impl<'a> ImgSegmentation<'a> {
 
 pub struct VisitedPixels {
     visited: Vec<bool>,
-    dimensions: Coordinates,
+    dimensions: (usize, usize),
 }
 
 impl VisitedPixels {
     pub fn new(dimensions: Coordinates) -> Self {
         Self {
             visited: vec![false; dimensions.0 as usize * dimensions.1 as usize],
-            dimensions,
+            dimensions: (dimensions.0 as usize, dimensions.1 as usize),
         }
     }
 
     pub fn visit_tone(&mut self, coords: Coordinates) {
-        self.visited[coords.0 as usize + (coords.1 * self.dimensions.0) as usize] = true;
+        self.visited[coords.0 as usize + (coords.1 as usize) * self.dimensions.0] = true;
     }
 
+    #[inline]
     pub fn is_visited(&self, coords: Coordinates) -> bool {
-        self.visited[coords.0 as usize + (coords.1 * self.dimensions.0) as usize]
+        self.visited[coords.0 as usize + (coords.1 as usize) * self.dimensions.0]
     }
 }
 

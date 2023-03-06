@@ -26,7 +26,7 @@ pub trait Transparent {
 impl Transparent for GrayAlphaImage {
     #[inline]
     fn is_transparent(&self, coords: Coordinates) -> bool {
-        self.get_pixel(coords.0 as u32, coords.1 as u32).0[1] > MINIMUM_TRANSPARENCY
+        self.get_pixel_s(coords)[1] > MINIMUM_TRANSPARENCY
     }
 }
 
@@ -37,10 +37,22 @@ pub trait SameTone {
 impl SameTone for GrayAlphaImage {
     #[inline]
     fn same_tone(&self, coords: Coordinates, tone: u8) -> bool {
-        self.get_pixel(coords.0 as u32, coords.1 as u32).0[0] == tone
+        self.get_pixel_s(coords)[0] == tone
     }
 }
 
+#[inline]
 pub fn normalize_tone(tone: u8) -> f64 {
     tone as f64 / u8::MAX as f64
+}
+
+pub trait SmallCoord {
+    fn get_pixel_s(&self, coords: Coordinates) -> [u8; 2];
+}
+
+impl SmallCoord for GrayAlphaImage {
+    #[inline]
+    fn get_pixel_s(&self, coords: Coordinates) -> [u8; 2] {
+        self.get_pixel(coords.0 as u32, coords.1 as u32).0
+    }
 }
