@@ -1,6 +1,4 @@
-use std::f64::MIN;
-
-use image::{GenericImageView, GrayAlphaImage};
+use image::GrayAlphaImage;
 
 pub type Coordinates = (u16, u16);
 pub type CoordinatesF = (f64, f64);
@@ -9,6 +7,10 @@ const MINIMUM_TRANSPARENCY: u8 = 0;
 
 pub trait Connected {
     fn is_connected(&self, other: &Self) -> bool;
+}
+
+pub trait Overlaps {
+    fn overlaps(&self, other: &Self) -> bool;
 }
 
 pub trait Crop {
@@ -26,7 +28,7 @@ pub trait Transparent {
 impl Transparent for GrayAlphaImage {
     #[inline]
     fn is_transparent(&self, coords: Coordinates) -> bool {
-        self.get_pixel_s(coords)[1] > MINIMUM_TRANSPARENCY
+        self.get_pixel_s(coords)[1] == MINIMUM_TRANSPARENCY
     }
 }
 

@@ -1,12 +1,13 @@
 pub mod centroid;
 pub mod connection;
+pub mod overlapping;
 
 use std::{
-    collections::{BTreeMap, HashMap, LinkedList},
+    collections::{HashMap},
     ops::RangeInclusive,
 };
 
-use image::{GenericImageView, GrayAlphaImage};
+use image::GrayAlphaImage;
 
 use crate::helpers::{
     Connected, Coordinates, CoordinatesF, Crop, SameTone, SmallCoord, Transparent, Centroid,
@@ -163,10 +164,12 @@ impl VisitedPixels {
 mod tests {
     use image::io::Reader;
 
-    use super::ImgSegmentation;
+    use crate::helpers::{Connected, Overlaps};
+
+    use super::{ImgSegmentation, Segment};
 
     #[test]
-    fn test_segmentation() {
+    fn segmentation() {
         let img = Reader::open(r"img_segments\segments.tif")
             .unwrap()
             .decode()
@@ -176,5 +179,29 @@ mod tests {
         let segments = ImgSegmentation::segment_img(&img);
 
         assert_eq!(segments.len(), 8);
+    }
+
+    #[test]
+    fn overlapping() {
+        let ranges_1 = vec![0..=5, 10..=15];
+        let ranges_2 = vec![19..=21, 14..=17];
+
+        assert!(ranges_1.overlaps(&ranges_2));
+    }
+
+    #[test]
+    fn side_connection() {
+        let seg_1 = Segment::from([(0, vec![0..=5]), (1, vec![0..=5])]);
+        let seg_2 = Segment::from([(0, vec![6..=8])]);
+
+        assert!(seg_1.is_connected(&seg_2));
+    }
+
+    #[test]
+    fn layer_connection() {
+        let seg_1 = Segment::from([(0, vec![0..=5]), (1, vec![0..=5])]);
+        let seg_2 = Segment::from([(2, vec![3..=3])]);
+
+       assert!(seg_1.is_connected(&seg_2));
     }
 }

@@ -1,11 +1,5 @@
-use std::collections::{BTreeSet, BTreeMap};
-
 use ordered_float::OrderedFloat;
-use petgraph::{
-    data::Build,
-    prelude::UnGraph,
-    visit::{IntoNodeReferences, NodeFilteredNodes}, stable_graph::NodeIndex,
-};
+use petgraph::prelude::UnGraph;
 
 use crate::{helpers::{CoordinatesF, Connected}, segmentation::{GeoSegment, ImageSegments}};
 
@@ -105,6 +99,6 @@ mod tests {
         let segments = ImgSegmentation::segment_img(&img);
         let b_segments = ImgSegmentation::segment_img(&img);
 
-        let graph = mount_graph(segments, b_segments);
+        let _graph = mount_graph(segments, b_segments);
     }
 }
