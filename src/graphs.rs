@@ -1,7 +1,10 @@
 use ordered_float::OrderedFloat;
 use petgraph::prelude::UnGraph;
 
-use crate::{helpers::{CoordinatesF, Connected}, segmentation::{GeoSegment, ImageSegments}};
+use crate::{
+    helpers::{Connected, CoordinatesF},
+    segmentation::{GeoSegment, ImageSegments},
+};
 
 pub trait EuclideanDistance {
     fn calc_euclidean_distance(&self, other: &Self) -> f64 {
@@ -69,7 +72,10 @@ fn connect_neighbours(seg_graph: &mut SegmentGraph, division: usize) {
         let mut min_tree = Vec::with_capacity(total_background_nodes);
 
         for b_node in background_nodes.clone() {
-            min_tree.push((OrderedFloat(seg_graph[b_node].calc_euclidean_distance(&seg_graph[f_node])), b_node));
+            min_tree.push((
+                OrderedFloat(seg_graph[b_node].calc_euclidean_distance(&seg_graph[f_node])),
+                b_node,
+            ));
         }
 
         min_tree.sort_by_key(|(distance, _)| *distance);
@@ -83,10 +89,39 @@ fn connect_neighbours(seg_graph: &mut SegmentGraph, division: usize) {
 #[cfg(test)]
 mod tests {
     use image::io::Reader;
+    use petgraph::data::FromElements;
 
-    use crate::segmentation::ImgSegmentation;
+    use crate::{helpers::img_to_segs, segmentation::ImgSegmentation};
 
-    use super::mount_graph;
+    use super::{connect_boundaries, mount_graph, SegmentGraph, connect_neighbours};
+
+    #[test]
+    fn boundaries() {
+        let mut graph = SegmentGraph::new_undirected();
+        let segs = img_to_segs(r"img_segments\graph_1.png");
+
+        for segment in segs.into_iter() {
+            graph.add_node(segment);
+        }
+
+        connect_boundaries(&mut graph);
+
+        assert_eq!(graph.edge_count(), 5);
+    }
+
+    #[test]
+    fn neighbours() {
+        let segs = img_to_segs(r"img_segments\graph_2.png");
+        let mut graph = SegmentGraph::new_undirected();
+
+        for segment in segs.into_iter() {
+            graph.add_node(segment);
+        }
+
+        connect_neighbours(&mut graph, 0);
+
+        assert_eq!(graph.edge_count(), 30);
+    }
 
     #[test]
     fn test_graph() {

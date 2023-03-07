@@ -9,9 +9,9 @@ use std::{
 
 use image::GrayAlphaImage;
 
-use crate::helpers::{
+use crate::{helpers::{
     Connected, Coordinates, CoordinatesF, Crop, SameTone, SmallCoord, Transparent, Centroid, Overlaps
-};
+}, graphs::SegmentGraph};
 pub type Segment = HashMap<u16, Vec<RangeInclusive<u16>>>;
 
 #[derive(Default)]
@@ -166,7 +166,7 @@ mod tests {
 
     use image::io::Reader;
 
-    use crate::helpers::{Connected, Overlaps, Crop};
+    use crate::helpers::{Connected, Overlaps, Crop, img_to_segs};
 
     use super::{ImgSegmentation, Segment, ImageSegments};
 
@@ -205,17 +205,6 @@ mod tests {
         let seg_2 = Segment::from([(2, vec![3..=3])]);
 
        assert!(seg_1.is_connected(&seg_2));
-    }
-
-    fn img_to_segs<P> (path: P) -> ImageSegments
-    where P: AsRef<Path> {
-        let img = Reader::open(path)
-        .unwrap()
-        .decode()
-        .unwrap()
-        .to_luma_alpha8();
-
-        ImgSegmentation::segment_img(&img)
     }
 
     #[test]

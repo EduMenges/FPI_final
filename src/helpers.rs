@@ -1,4 +1,8 @@
-use image::GrayAlphaImage;
+use std::path::Path;
+
+use image::{GrayAlphaImage, io::Reader};
+
+use crate::segmentation::{ImageSegments, ImgSegmentation};
 
 pub type Coordinates = (u16, u16);
 pub type CoordinatesF = (f64, f64);
@@ -57,4 +61,15 @@ impl SmallCoord for GrayAlphaImage {
     fn get_pixel_s(&self, coords: Coordinates) -> [u8; 2] {
         self.get_pixel(coords.0 as u32, coords.1 as u32).0
     }
+}
+
+pub fn img_to_segs<P> (path: P) -> ImageSegments
+where P: AsRef<Path> {
+    let img = Reader::open(path)
+    .unwrap()
+    .decode()
+    .unwrap()
+    .to_luma_alpha8();
+
+    ImgSegmentation::segment_img(&img)
 }
