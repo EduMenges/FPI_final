@@ -118,9 +118,10 @@ mod tests {
             graph.add_node(segment);
         }
 
-        connect_neighbours(&mut graph, 0);
+        let division = graph.node_count() / 3;
+        connect_neighbours(&mut graph, division);
 
-        assert_eq!(graph.edge_count(), 30);
+        assert_eq!(graph.edge_count(), 36);
     }
 
     #[test]
