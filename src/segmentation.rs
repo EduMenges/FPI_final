@@ -10,7 +10,7 @@ use std::{
 use image::GrayAlphaImage;
 
 use crate::helpers::{
-    Connected, Coordinates, CoordinatesF, Crop, SameTone, SmallCoord, Transparent, Centroid,
+    Connected, Coordinates, CoordinatesF, Crop, SameTone, SmallCoord, Transparent, Centroid, Overlaps
 };
 pub type Segment = HashMap<u16, Vec<RangeInclusive<u16>>>;
 
@@ -26,7 +26,7 @@ impl Crop for ImageSegments {
     fn crop(&self, other: Self) -> Self {
         other
             .into_iter()
-            .filter(|o_seg| self.iter().any(|s_seg| s_seg.seg.is_connected(&o_seg.seg)))
+            .filter(|o_seg| self.iter().any(|s_seg| s_seg.seg.overlaps(&o_seg.seg)))
             .collect()
     }
 }
@@ -162,11 +162,13 @@ impl VisitedPixels {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use image::io::Reader;
 
-    use crate::helpers::{Connected, Overlaps};
+    use crate::helpers::{Connected, Overlaps, Crop};
 
-    use super::{ImgSegmentation, Segment};
+    use super::{ImgSegmentation, Segment, ImageSegments};
 
     #[test]
     fn segmentation() {
@@ -203,5 +205,26 @@ mod tests {
         let seg_2 = Segment::from([(2, vec![3..=3])]);
 
        assert!(seg_1.is_connected(&seg_2));
+    }
+
+    fn img_to_segs<P> (path: P) -> ImageSegments
+    where P: AsRef<Path> {
+        let img = Reader::open(path)
+        .unwrap()
+        .decode()
+        .unwrap()
+        .to_luma_alpha8();
+
+        ImgSegmentation::segment_img(&img)
+    }
+
+    #[test]
+    fn cropping() {
+        let seg_1 = img_to_segs(r"img_segments\crop_1.png");
+        let seg_2 = img_to_segs(r"img_segments\crop_2.png");
+        
+        let seg_2 = seg_1.crop(seg_2);
+
+        assert_eq!(seg_2.len(), 2);
     }
 }
