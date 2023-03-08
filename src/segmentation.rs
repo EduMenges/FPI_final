@@ -2,16 +2,17 @@ pub mod centroid;
 pub mod connection;
 pub mod overlapping;
 
-use std::{
-    collections::{HashMap},
-    ops::RangeInclusive,
-};
+use std::{collections::HashMap, ops::RangeInclusive};
 
 use image::GrayAlphaImage;
 
-use crate::{helpers::{
-    Connected, Coordinates, CoordinatesF, Crop, SameTone, SmallCoord, Transparent, Centroid, Overlaps
-}, graphs::SegmentGraph};
+use crate::{
+    graphs::SegmentGraph,
+    helpers::{
+        Centroid, Connected, Coordinates, CoordinatesF, Crop, Overlaps, SameTone, SmallCoord,
+        Transparent,
+    },
+};
 pub type Segment = HashMap<u16, Vec<RangeInclusive<u16>>>;
 
 #[derive(Default)]
@@ -162,13 +163,11 @@ impl VisitedPixels {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
     use image::io::Reader;
 
-    use crate::helpers::{Connected, Overlaps, Crop, img_to_segs};
+    use crate::helpers::{img_to_segs, Connected, Crop, Overlaps};
 
-    use super::{ImgSegmentation, Segment, ImageSegments};
+    use super::{ImgSegmentation, Segment};
 
     #[test]
     fn segmentation() {
@@ -204,14 +203,14 @@ mod tests {
         let seg_1 = Segment::from([(0, vec![0..=5]), (1, vec![0..=5])]);
         let seg_2 = Segment::from([(2, vec![3..=3])]);
 
-       assert!(seg_1.is_connected(&seg_2));
+        assert!(seg_1.is_connected(&seg_2));
     }
 
     #[test]
     fn cropping() {
         let seg_1 = img_to_segs(r"img_segments\crop_1.png");
         let seg_2 = img_to_segs(r"img_segments\crop_2.png");
-        
+
         let seg_2 = seg_1.crop(seg_2);
 
         assert_eq!(seg_2.len(), 2);

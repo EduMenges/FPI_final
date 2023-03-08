@@ -89,12 +89,10 @@ fn connect_neighbours(seg_graph: &mut SegmentGraph, division: usize) {
 #[cfg(test)]
 mod tests {
     use image::io::Reader;
-    use ordered_float::OrderedFloat;
-    use petgraph::{data::FromElements, visit::{IntoNodeReferences, IntoEdgeReferences}};
 
-    use crate::{helpers::img_to_segs, segmentation::ImgSegmentation, graphs::EuclideanDistance};
+    use crate::{graphs::EuclideanDistance, helpers::img_to_segs, segmentation::ImgSegmentation};
 
-    use super::{connect_boundaries, mount_graph, SegmentGraph, connect_neighbours};
+    use super::{connect_boundaries, connect_neighbours, mount_graph, SegmentGraph};
 
     #[test]
     fn boundaries() {
@@ -123,7 +121,7 @@ mod tests {
         connect_neighbours(&mut graph, division);
 
         assert_eq!(graph.edge_count(), 36);
-        
+
         let max_dist = graph.edge_indices().fold(0.0, |max: f64, f_e| {
             max.max({
                 let (node_1, node_2) = graph.edge_endpoints(f_e).unwrap();
