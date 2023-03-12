@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use eframe::glow::LINEAR;
-use egui::{TextureHandle, Context, ColorImage, TextureOptions};
+use egui::{TextureHandle, Context, ColorImage, TextureOptions, Vec2};
 use image::RgbaImage;
 
 pub struct ImageWrapper {
@@ -19,5 +19,12 @@ impl ImageWrapper {
         let texture = ctx.load_texture(name, egui_image, TextureOptions::LINEAR);
 
         Self { img, texture }
+    }
+
+    pub fn maintain_ratio(&self, available_width: f32) -> Vec2 {
+        let size = self.texture.size();
+        let increase_ratio = available_width / size[0] as f32;
+        let new_height = increase_ratio * size[1] as f32;
+        Vec2{ x: available_width, y: new_height }
     }
 }

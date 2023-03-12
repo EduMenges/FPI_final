@@ -8,6 +8,7 @@ pub mod helpers;
 pub mod app;
 
 use crate::app::CamouflageImages;
+
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         maximized: true,

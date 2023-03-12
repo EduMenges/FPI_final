@@ -1,10 +1,14 @@
 use std::path::PathBuf;
 
-use eframe::{Frame, epaint::Shadow};
-use egui::{menu, CentralPanel, TopBottomPanel, Window, Color32, Margin, Rounding, Stroke};
+use eframe::{epaint::Shadow, Frame};
+use egui::{menu, CentralPanel, Color32, Margin, Rounding, Stroke, TopBottomPanel, Window, SidePanel};
 use image::{ImageBuffer, RgbaImage};
 
-use self::{foreground::Foreground, image_wrapper::ImageWrapper, my_menu::{open_image, load_image}};
+use self::{
+    foreground::Foreground,
+    image_wrapper::ImageWrapper,
+    my_menu::{load_image, open_image},
+};
 
 pub mod foreground;
 pub mod image_wrapper;
@@ -17,16 +21,17 @@ pub struct CamouflageImages {
 }
 
 impl CamouflageImages {
-    const NO_MARGIN: Margin = Margin {
-        left: 0.0,
-        right: 0.0,
-        top: 0.0,
-        bottom: 0.0,
+    const FOREGROUND_MARGIN: Margin = Margin {
+        left: 2.0,
+        right: 2.0,
+        top: 2.0,
+        bottom: 2.0,
     };
-    const FOREGROUND_FRAME: egui::containers::Frame = egui::containers::Frame{
-        inner_margin: CamouflageImages::NO_MARGIN,
-        outer_margin: CamouflageImages::NO_MARGIN,
-        rounding:         Rounding {
+
+    const FOREGROUND_FRAME: egui::containers::Frame = egui::containers::Frame {
+        inner_margin: CamouflageImages::FOREGROUND_MARGIN,
+        outer_margin: CamouflageImages::FOREGROUND_MARGIN,
+        rounding: Rounding {
             nw: 0.0,
             ne: 0.0,
             sw: 0.0,
@@ -34,9 +39,12 @@ impl CamouflageImages {
         },
         shadow: Shadow::NONE,
         fill: Color32::TRANSPARENT,
-        stroke: Stroke::NONE,
+        stroke: Stroke {
+            width: 0.5,
+            color: Color32::GREEN,
+        },
     };
-    
+
     pub fn menu(&mut self, ctx: &egui::Context) {
         TopBottomPanel::top("menu").show(ctx, |ui| {
             menu::bar(ui, |ui| {
@@ -65,16 +73,23 @@ impl CamouflageImages {
                     if let Some(ref background) = self.background {
                         ui.image(&background.texture, background.texture.size_vec2());
                     }
+                    if let Some(ref mut foreground) = self.foreground {
+                        Window::new("Foreground")
+                            .open(&mut foreground.open)
+                            .resizable(true)
+                            .title_bar(false)
+                            .constrain(true)
+                            .frame(CamouflageImages::FOREGROUND_FRAME)
+                            .default_size(foreground.wrp.texture.size_vec2())
+                            .show(ctx, |ui| {
+                                let resized = foreground.wrp.maintain_ratio(ui.available_width());
+                                let cu = ui.next_widget_position();
+                                println!("{:?}", cu);
+                                ui.image(&foreground.wrp.texture, resized);
+                            });
+                            
+                    }
                 });
-
-            if let Some(ref mut foreground) = self.foreground {
-                Window::new("Foreground").open(&mut foreground.open)
-                .resizable(true)
-                .frame(CamouflageImages::FOREGROUND_FRAME)
-                .show(ctx, |ui| {
-                    ui.image(&foreground.wrp.texture, foreground.wrp.texture.size_vec2());
-                });
-            }
         });
     }
 
@@ -85,15 +100,28 @@ impl CamouflageImages {
     }
 
     fn update_foreground(&mut self, new_img: Option<RgbaImage>, ctx: &egui::Context) {
-        if let Some(img) = new_img {
-            self.foreground = Some(Foreground::new(img, ctx));
+        if let Some(ref background) = self.background {
+            if let Some(img) = new_img {
+                self.foreground = Some(Foreground::new(img, ctx, background.texture.size_vec2()));
+            }
         }
+    }
+
+    pub fn side(&mut self, ctx: &egui::Context) {
+        SidePanel::right("apply_menu").show(ctx, |ui| {
+            if let Some(ref mut foreground) = self.foreground {
+                if ui.button("Apply").clicked() {
+
+                }
+            }
+        });
     }
 }
 
 impl eframe::App for CamouflageImages {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         CamouflageImages::menu(self, ctx);
+        CamouflageImages::side(self, ctx);
         CamouflageImages::central(self, ctx);
         // CentralPanel::default().show(ctx, |ui| {
         //     ui.ctx().load_texture("cu", egui::ColorImage::example(), Default::default());
