@@ -13,7 +13,7 @@ fn load_dialog(title: &str) -> Option<PathBuf> {
         .pick_file()
 }
 
-fn load_image(path: PathBuf) -> Option<RgbaImage> {
+pub fn load_image(path: PathBuf) -> Option<RgbaImage> {
     let img = image::io::Reader::open(path).unwrap().decode();
     match img {
         Ok(img) => Some(img.into_rgba8()),
