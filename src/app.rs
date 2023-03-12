@@ -1,7 +1,9 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 use eframe::{epaint::Shadow, Frame};
-use egui::{menu, CentralPanel, Color32, Margin, Rounding, Stroke, TopBottomPanel, Window, SidePanel};
+use egui::{
+    menu, CentralPanel, Color32, Margin, Pos2, Rounding, SidePanel, Stroke, TopBottomPanel, Window,
+};
 use image::{ImageBuffer, RgbaImage};
 
 use self::{
@@ -21,15 +23,24 @@ pub struct CamouflageImages {
 }
 
 impl CamouflageImages {
+    pub const DEFAULT_POS: Pos2 = Pos2 { x: 8.0, y: 32.0 };
+
     const FOREGROUND_MARGIN: Margin = Margin {
-        left: 2.0,
-        right: 2.0,
-        top: 2.0,
-        bottom: 2.0,
+        left: 8.0,
+        right: 8.0,
+        top: 8.0,
+        bottom: 8.0,
+    };
+
+    const NO_MARGIN: Margin = Margin {
+        left: 0.0,
+        right: 0.0,
+        top: 0.0,
+        bottom: 0.0,
     };
 
     const FOREGROUND_FRAME: egui::containers::Frame = egui::containers::Frame {
-        inner_margin: CamouflageImages::FOREGROUND_MARGIN,
+        inner_margin: CamouflageImages::NO_MARGIN,
         outer_margin: CamouflageImages::FOREGROUND_MARGIN,
         rounding: Rounding {
             nw: 0.0,
@@ -70,26 +81,28 @@ impl CamouflageImages {
                 .auto_shrink([true, true])
                 .min_scrolled_width(400.0)
                 .show(ui, |ui| {
+                    let cu = ui.next_widget_position();
+                    println!("{:?}", cu);
                     if let Some(ref background) = self.background {
                         ui.image(&background.texture, background.texture.size_vec2());
                     }
-                    if let Some(ref mut foreground) = self.foreground {
-                        Window::new("Foreground")
-                            .open(&mut foreground.open)
-                            .resizable(true)
-                            .title_bar(false)
-                            .constrain(true)
-                            .frame(CamouflageImages::FOREGROUND_FRAME)
-                            .default_size(foreground.wrp.texture.size_vec2())
-                            .show(ctx, |ui| {
-                                let resized = foreground.wrp.maintain_ratio(ui.available_width());
-                                let cu = ui.next_widget_position();
-                                println!("{:?}", cu);
-                                ui.image(&foreground.wrp.texture, resized);
-                            });
-                            
-                    }
                 });
+
+            if let Some(ref mut foreground) = self.foreground {
+                Window::new("Foreground")
+                    .open(&mut foreground.open)
+                    .resizable(true)
+                    .title_bar(false)
+                    .constrain(true)
+                    .frame(CamouflageImages::FOREGROUND_FRAME)
+                    .default_size(foreground.window.texture.size_vec2())
+                    .show(ctx, |ui| {
+                        foreground.window.scale_size(ui.available_width());
+                        let cu = ui.next_widget_position();
+                        println!("{:?}", cu);
+                        ui.image(&foreground.window.texture, foreground.window.size);
+                    });
+            }
         });
     }
 
@@ -110,9 +123,7 @@ impl CamouflageImages {
     pub fn side(&mut self, ctx: &egui::Context) {
         SidePanel::right("apply_menu").show(ctx, |ui| {
             if let Some(ref mut foreground) = self.foreground {
-                if ui.button("Apply").clicked() {
-
-                }
+                if ui.button("Apply").clicked() {}
             }
         });
     }
@@ -123,6 +134,7 @@ impl eframe::App for CamouflageImages {
         CamouflageImages::menu(self, ctx);
         CamouflageImages::side(self, ctx);
         CamouflageImages::central(self, ctx);
+        ctx.request_repaint_after(Duration::SECOND);
         // CentralPanel::default().show(ctx, |ui| {
         //     ui.ctx().load_texture("cu", egui::ColorImage::example(), Default::default());
         // });
