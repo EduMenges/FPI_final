@@ -64,10 +64,13 @@ impl CamouflageImages {
                         if ui.button("Background").clicked() {
                             let background = open_image("Select an image for the background");
                             self.update_background(background, ctx);
+                            ui.close_menu();
                         };
+
                         if ui.button("Foreground").clicked() {
                             let foreground = load_image(PathBuf::from(r"img_segments\graph_1.png"));
                             self.update_foreground(foreground, ctx);
+                            ui.close_menu();
                         };
                     });
                 });
@@ -81,8 +84,6 @@ impl CamouflageImages {
                 .auto_shrink([true, true])
                 .min_scrolled_width(400.0)
                 .show(ui, |ui| {
-                    let cu = ui.next_widget_position();
-                    println!("{:?}", cu);
                     if let Some(ref background) = self.background {
                         ui.image(&background.texture, background.texture.size_vec2());
                     }
@@ -98,8 +99,6 @@ impl CamouflageImages {
                     .default_size(foreground.window.texture.size_vec2())
                     .show(ctx, |ui| {
                         foreground.window.scale_size(ui.available_width());
-                        let cu = ui.next_widget_position();
-                        println!("{:?}", cu);
                         ui.image(&foreground.window.texture, foreground.window.size);
                     });
             }
@@ -107,9 +106,9 @@ impl CamouflageImages {
     }
 
     fn update_background(&mut self, new_img: Option<RgbaImage>, ctx: &egui::Context) {
-        if let Some(img) = new_img {
-            self.background = Some(ImageWrapper::new(img, String::from("background"), ctx));
-        }
+            if let Some(img) = new_img {
+                self.background = Some(ImageWrapper::new(img, String::from("background"), ctx));
+            }
     }
 
     fn update_foreground(&mut self, new_img: Option<RgbaImage>, ctx: &egui::Context) {
@@ -134,6 +133,7 @@ impl eframe::App for CamouflageImages {
         CamouflageImages::menu(self, ctx);
         CamouflageImages::side(self, ctx);
         CamouflageImages::central(self, ctx);
+        
         ctx.request_repaint_after(Duration::SECOND);
         // CentralPanel::default().show(ctx, |ui| {
         //     ui.ctx().load_texture("cu", egui::ColorImage::example(), Default::default());

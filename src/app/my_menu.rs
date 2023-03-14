@@ -6,6 +6,7 @@ use rfd::FileDialog;
 fn load_dialog(title: &str) -> Option<PathBuf> {
     FileDialog::new()
         .add_filter("Image", &["png", "jpg", "jpeg", "gif", "webp"])
+        .add_filter("Other files", &["*"])
         .set_title(title)
         .pick_file()
 }
