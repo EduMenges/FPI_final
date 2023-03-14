@@ -13,12 +13,16 @@ use crate::{
         Transparent,
     },
 };
+
+/// Keys -> y coordinates
+/// Values -> ranges of the x values that belongs in the y coordinate
 pub type Segment = HashMap<u16, Vec<RangeInclusive<u16>>>;
 
 #[derive(Default)]
 pub struct GeoSegment {
     pub centroid: CoordinatesF,
     pub seg: Segment,
+    pub tone: u8,
 }
 
 pub type ImageSegments = Vec<GeoSegment>;
@@ -61,7 +65,10 @@ impl<'a> ImgSegmentation<'a> {
                 this.visited.visit_tone(coords);
 
                 if !this.img.is_transparent(coords) {
-                    let mut new_segment = GeoSegment::default();
+                    let mut new_segment = GeoSegment {
+                        tone: this.img.get_pixel_s(coords)[0],
+                        ..GeoSegment::default()
+                    };
                     this.mount_segment(&mut new_segment, coords);
                     new_segment.centroid = new_segment.seg.calc_centroid(this.img);
 
