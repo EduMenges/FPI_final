@@ -6,6 +6,8 @@ use egui::{
 };
 use image::{ImageBuffer, RgbaImage};
 
+use crate::helpers::no_nonsense_sub;
+
 use self::{
     foreground::Foreground,
     image_wrapper::ImageWrapper,
@@ -62,14 +64,21 @@ impl CamouflageImages {
                 ui.menu_button("File", |ui| {
                     ui.menu_button("Open image", |ui| {
                         if ui.button("Background").clicked() {
-                            let background = open_image("Select an image for the background");
-                            self.update_background(background, ctx);
+                            // let new_background =
+                            //     open_image("Select an image for the background");
+                            let new_background =
+                                load_image(PathBuf::from(r"test_images\Roche Rock.png"));
+                            self.update_background(new_background, ctx);
+
                             ui.close_menu();
                         };
 
                         if ui.button("Foreground").clicked() {
-                            let foreground = load_image(PathBuf::from(r"img_segments\graph_1.png"));
-                            self.update_foreground(foreground, ctx);
+                            let new_foreground = open_image("Select an image for the foreground");
+                            // let new_foreground =
+                            //     load_image(PathBuf::from(r"test_images\Tiger.png"));
+                            self.update_foreground(new_foreground, ctx);
+
                             ui.close_menu();
                         };
                     });
@@ -87,56 +96,77 @@ impl CamouflageImages {
                     if let Some(ref background) = self.background {
                         ui.image(&background.texture, background.texture.size_vec2());
                     }
-                });
 
-            if let Some(ref mut foreground) = self.foreground {
-                Window::new("Foreground")
-                    .open(&mut foreground.open)
-                    .resizable(true)
-                    .title_bar(false)
-                    .constrain(true)
-                    .frame(CamouflageImages::FOREGROUND_FRAME)
-                    .default_size(foreground.window.texture.size_vec2())
-                    .show(ctx, |ui| {
-                        foreground.window.scale_size(ui.available_width());
-                        ui.image(&foreground.window.texture, foreground.window.size);
-                    });
-            }
+                    if let Some(ref mut foreground) = self.foreground {
+                        foreground.draw_foreground_layer(ctx);
+                        let mut next_pos: Pos2 = Default::default();
+
+                        Window::new("Foreground")
+                            .open(&mut foreground.open)
+                            .resizable(true)
+                            .title_bar(false)
+                            .constrain(true)
+                            .frame(CamouflageImages::FOREGROUND_FRAME)
+                            .default_size(foreground.window.texture.size_vec2())
+                            .show(ctx, |ui| {
+                                foreground.window.scale_size(ui.available_width());
+                                next_pos = ui.next_widget_position();
+                                ui.image(&foreground.window.texture, foreground.window.size);
+                            });
+
+                        foreground.change_pos(next_pos);
+                    }
+                });
         });
     }
 
     fn update_background(&mut self, new_img: Option<RgbaImage>, ctx: &egui::Context) {
-            if let Some(img) = new_img {
-                self.background = Some(ImageWrapper::new(img, String::from("background"), ctx));
-            }
+        if let Some(img) = new_img {
+            self.background = Some(ImageWrapper::new(img, String::from("background"), ctx));
+        }
     }
 
     fn update_foreground(&mut self, new_img: Option<RgbaImage>, ctx: &egui::Context) {
         if let Some(ref background) = self.background {
             if let Some(img) = new_img {
-                self.foreground = Some(Foreground::new(img, ctx, background.texture.size_vec2()));
+                match self.foreground {
+                    Some(ref mut foreground) => {
+                        foreground.update(img);
+                    }
+                    None => {
+                        self.foreground =
+                            Some(Foreground::new(img, ctx, background.img.dimensions()));
+                    }
+                }
             }
         }
     }
 
     pub fn side(&mut self, ctx: &egui::Context) {
         SidePanel::right("apply_menu").show(ctx, |ui| {
-            if let Some(ref mut foreground) = self.foreground {
-                if ui.button("Apply").clicked() {}
-            }
+            ui.vertical(|ui| {
+                if let Some(ref mut foreground) = self.foreground {
+                    if ui.button("Apply").clicked() {
+                        foreground.overlay();
+                    }
+
+                    ui.separator();
+
+                    if ui.button("CAMOUFLAGE").clicked() {
+                        println!("Here goes nothing.");
+                    }
+                }
+            });
         });
     }
 }
 
 impl eframe::App for CamouflageImages {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        ctx.request_repaint_after(Duration::MILLISECOND);
+
         CamouflageImages::menu(self, ctx);
         CamouflageImages::side(self, ctx);
         CamouflageImages::central(self, ctx);
-        
-        ctx.request_repaint_after(Duration::SECOND);
-        // CentralPanel::default().show(ctx, |ui| {
-        //     ui.ctx().load_texture("cu", egui::ColorImage::example(), Default::default());
-        // });
     }
 }

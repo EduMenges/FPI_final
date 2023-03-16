@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use egui::Pos2;
 use image::{GrayAlphaImage, io::Reader};
 
 use crate::segmentation::{ImageSegments, ImgSegmentation};
@@ -72,4 +73,8 @@ where P: AsRef<Path> {
     .to_luma_alpha8();
 
     ImgSegmentation::segment_img(&img)
+}
+
+pub fn no_nonsense_sub(lhs: Pos2, rhs: Pos2) -> Pos2 {
+    Pos2 { x: lhs.x - rhs.x, y: lhs.y - rhs.y }
 }

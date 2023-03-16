@@ -19,8 +19,8 @@ impl ImageWrapper {
         let texture = ctx.load_texture(name, egui_image, Self::SCALLING_OPTIONS);
 
         let size = Vec2 {
-            x: size[0] as _,
-            y: size[1] as _,
+            x: img.width() as _,
+            y: img.height() as _,
         };
 
         Self { img, texture, size }
@@ -30,8 +30,8 @@ impl ImageWrapper {
         let samples = img.as_flat_samples();
         let rgba = samples.as_slice();
         let size = [img.width() as _, img.height() as _];
-
-        let egui_image = ColorImage::from_rgba_unmultiplied(size, rgba);
+    
+        ColorImage::from_rgba_unmultiplied(size, rgba)
     }
 
     pub fn scale_size(&mut self, new_width: f32) {
@@ -55,7 +55,12 @@ impl ImageWrapper {
     }
 
     pub fn update(&mut self, img: RgbaImage) {
-        self.img = img;
         self.texture.set(Self::img_to_egui(&img), Self::SCALLING_OPTIONS);
+        self.img = img;
+    }
+
+    #[inline]
+    pub fn reload_texture(&mut self) {
+        self.texture.set(Self::img_to_egui(&self.img), Self::SCALLING_OPTIONS);
     }
 }
