@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use egui::Pos2;
-use image::{GrayAlphaImage, io::Reader};
+use image::{io::Reader, GrayAlphaImage};
 
 use crate::segmentation::{ImageSegments, ImgSegmentation};
 
@@ -64,17 +64,22 @@ impl SmallCoord for GrayAlphaImage {
     }
 }
 
-pub fn img_to_segs<P> (path: P) -> ImageSegments
-where P: AsRef<Path> {
+pub fn img_to_segs<P>(path: P) -> ImageSegments
+where
+    P: AsRef<Path>,
+{
     let img = Reader::open(path)
-    .unwrap()
-    .decode()
-    .unwrap()
-    .to_luma_alpha8();
+        .unwrap()
+        .decode()
+        .unwrap()
+        .to_luma_alpha8();
 
     ImgSegmentation::segment_img(&img)
 }
 
 pub fn no_nonsense_sub(lhs: Pos2, rhs: Pos2) -> Pos2 {
-    Pos2 { x: lhs.x - rhs.x, y: lhs.y - rhs.y }
+    Pos2 {
+        x: lhs.x - rhs.x,
+        y: lhs.y - rhs.y,
+    }
 }

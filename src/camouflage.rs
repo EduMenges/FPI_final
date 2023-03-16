@@ -1,8 +1,8 @@
 use image::{DynamicImage, GenericImageView};
 
 use crate::{
-    quantization::quantize_by_tones,
-    segmentation::{ImgSegmentation}, helpers::Crop, graphs::mount_graph,
+    graphs::mount_graph, helpers::Crop, quantization::quantize_by_tones,
+    segmentation::ImgSegmentation,
 };
 
 fn camouflage_img(i_b: &DynamicImage, i_f: &DynamicImage, _pos: (u32, u32)) -> DynamicImage {
@@ -24,9 +24,9 @@ fn camouflage_img(i_b: &DynamicImage, i_f: &DynamicImage, _pos: (u32, u32)) -> D
 
     // Cropping images
     let seg_b = seg_f.crop(seg_b);
-    
+
     // Creating graphs
     let _graph = mount_graph(seg_f, seg_b);
-    
+
     camouflaged
 }

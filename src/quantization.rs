@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use image::{LumaA, GrayAlphaImage};
+use image::{GrayAlphaImage, LumaA};
 
 pub fn quantize(img: &mut GrayAlphaImage, n: u8) {
     let t_1 = img.pixels().min_by_key(|p| p[0]).unwrap().0[0];
@@ -24,8 +24,7 @@ pub fn quantize(img: &mut GrayAlphaImage, n: u8) {
                 let bin_i = usize::from(pixel[0] - t_1) / tb.round() as usize;
                 let quantized_value = bin_vec[bin_i];
 
-                let quantized_pixel =
-                    LumaA::<u8>([quantized_value, pixel[1]]);
+                let quantized_pixel = LumaA::<u8>([quantized_value, pixel[1]]);
 
                 img.put_pixel(w, h, quantized_pixel);
             }
@@ -33,10 +32,9 @@ pub fn quantize(img: &mut GrayAlphaImage, n: u8) {
     }
 }
 
-pub fn calc_tones(img: &GrayAlphaImage) -> u8
-{
+pub fn calc_tones(img: &GrayAlphaImage) -> u8 {
     let mut set = HashSet::new();
-    
+
     for p in img.pixels().filter(|p| p.0[1] > 0) {
         set.insert(p.0[0]);
     }
